@@ -244,7 +244,7 @@ class Model(nn.Module):
 
         x_enc = x_enc.permute(0, 2, 1).contiguous()
         x_enc = x_enc.to(torch.bfloat16)
-        print(f"Data type before some_layer: {x.dtype}")
+        print(f"Data type before some_layer: {x_enc.dtype}")
         enc_out, n_vars = self.patch_embedding(x_enc)
         enc_out = self.reprogramming_layer(enc_out, source_embeddings, source_embeddings)
         llama_enc_out = torch.cat([prompt_embeddings, enc_out], dim=1)

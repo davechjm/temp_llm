@@ -231,7 +231,9 @@ class Model(nn.Module):
             )
 
             prompt.append(prompt_)
-
+        x_mark_enc = x_mark_enc.to(torch.bfloat16)
+        x_dec = x_dec.to(torch.bfloat16)
+        x_mark_dec = x_mark_dec.to(torch.bfloat16)
         x_enc = x_enc.reshape(B, N, T).permute(0, 2, 1).contiguous()
         x_enc = x_enc.to(torch.bfloat16)
 

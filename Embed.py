@@ -10,11 +10,11 @@ class PositionalEmbedding(nn.Module):
     def __init__(self, d_model, max_len=5000):
         super(PositionalEmbedding, self).__init__()
         # Compute the positional encodings once in log space.
-        pe = torch.zeros(max_len, d_model).float()
+        pe = torch.zeros(max_len, d_model).to(dtype=torch.float16)
         pe.require_grad = False
 
-        position = torch.arange(0, max_len).float().unsqueeze(1)
-        div_term = (torch.arange(0, d_model, 2).float()
+        position = torch.arange(0, max_len).to(dtype=torch.float16).unsqueeze(1)
+        div_term = (torch.arange(0, d_model, 2).to(dtype=torch.float16)
                     * -(math.log(10000.0) / d_model)).exp()
 
         pe[:, 0::2] = torch.sin(position * div_term)
@@ -52,11 +52,11 @@ class FixedEmbedding(nn.Module):
     def __init__(self, c_in, d_model):
         super(FixedEmbedding, self).__init__()
 
-        w = torch.zeros(c_in, d_model).float()
+        w = torch.zeros(c_in, d_model).to(dtype=torch.float16)
         w.require_grad = False
 
-        position = torch.arange(0, c_in).float().unsqueeze(1)
-        div_term = (torch.arange(0, d_model, 2).float()
+        position = torch.arange(0, c_in).to(dtype=torch.float16).unsqueeze(1)
+        div_term = (torch.arange(0, d_model, 2).to(dtype=torch.float16)
                     * -(math.log(10000.0) / d_model)).exp()
 
         w[:, 0::2] = torch.sin(position * div_term)

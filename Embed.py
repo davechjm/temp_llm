@@ -39,7 +39,10 @@ class TokenEmbedding(nn.Module):
                     m.weight, mode='fan_in', nonlinearity='leaky_relu')
 
     def forward(self, x):
+        print(f"Data type before operation: {x.dtype}")  # Debugging statement
         x = x.to(torch.bfloat16)
+        print(f"Data type after conversion: {x.dtype}")  # Debugging statement
+        assert x.dtype == torch.bfloat16, "Data type mismatch detected for x_enc"
         x = self.tokenConv(x.permute(0, 2, 1)).transpose(1, 2)
         return x
 

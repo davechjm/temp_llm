@@ -187,6 +187,7 @@ for ii in range(args.itr):
             model_optim.zero_grad()
 
             batch_x = batch_x.float().to(accelerator.device)
+            print('accelator device', accelerator.device)
             batch_y = batch_y.float().to(accelerator.device)
             batch_x_mark = batch_x_mark.float().to(accelerator.device)
             batch_y_mark = batch_y_mark.float().to(accelerator.device)

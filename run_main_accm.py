@@ -169,14 +169,20 @@ for ii in range(args.itr):
 
     if args.use_amp:
         scaler = torch.cuda.amp.GradScaler()
-
+    accumulation_steps = 2
     for epoch in range(args.train_epochs):
         iter_count = 0
         train_loss = []
 
         model.train()
         epoch_time = time.time()
+        
+        optimizer_zeroed = False
         for i, (batch_x, batch_y, batch_x_mark, batch_y_mark) in tqdm(enumerate(train_loader)):
+            if not optimizer_zeroed:
+                model_optim.zero_grad()
+                optimizer_zeroed = True
+                
             iter_count += 1
             model_optim.zero_grad()
 
@@ -191,49 +197,55 @@ for ii in range(args.itr):
             dec_inp = torch.cat([batch_y[:, :args.label_len, :], dec_inp], dim=1).float().to(
                 accelerator.device)
 
-            # encoder - decoder
+            # Process the encoder-decoder
             if args.use_amp:
                 with torch.cuda.amp.autocast():
-                    if args.output_attention:
-                        outputs = model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
-                    else:
-                        outputs = model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
-
+                    outputs = model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
                     f_dim = -1 if args.features == 'MS' else 0
                     outputs = outputs[:, -args.pred_len:, f_dim:]
                     batch_y = batch_y[:, -args.pred_len:, f_dim:].to(accelerator.device)
                     loss = criterion(outputs, batch_y)
-                    train_loss.append(loss.item())
+                    loss = loss / accumulation_steps  # Normalize the loss for accumulated gradients
             else:
-                if args.output_attention:
-                    outputs = model(batch_x, batch_x_mark, dec_inp, batch_y_mark)[0]
-                else:
-                    outputs = model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
-
+                outputs = model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
                 f_dim = -1 if args.features == 'MS' else 0
                 outputs = outputs[:, -args.pred_len:, f_dim:]
                 batch_y = batch_y[:, -args.pred_len:, f_dim:]
                 loss = criterion(outputs, batch_y)
-                train_loss.append(loss.item())
+                loss = loss / accumulation_steps  # Normalize the loss for accumulated gradients
 
-            if (i + 1) % 100 == 0:
-                accelerator.print(
-                    "\titers: {0}, epoch: {1} | loss: {2:.7f}".format(i + 1, epoch + 1, loss.item()))
-                speed = (time.time() - time_now) / iter_count
-                left_time = speed * ((args.train_epochs - epoch) * train_steps - i)
-                accelerator.print('\tspeed: {:.4f}s/iter; left time: {:.4f}s'.format(speed, left_time))
-                iter_count = 0
-                time_now = time.time()
 
+
+            # Accumulate gradients
             if args.use_amp:
                 scaler.scale(loss).backward()
-                scaler.step(model_optim)
-                scaler.update()
             else:
-                accelerator.backward(loss)
-                model_optim.step()
+                loss.backward()
 
-            if args.lradj == 'TST':
+            train_loss.append(loss.item() * accumulation_steps)  # Adjusting the recorded loss
+
+                        
+            # Update weights after accumulation
+            if (i + 1) % accumulation_steps == 0:
+                if args.use_amp:
+                    scaler.step(model_optim)
+                    scaler.update()
+                else:
+                    model_optim.step()
+                model_optim.zero_grad()
+                optimizer_zeroed = False
+
+                # Logging every 100 iterations
+                if (i + 1) % 100 == 0:
+                    accelerator.print("\titers: {0}, epoch: {1} | loss: {2:.7f}".format(i + 1, epoch + 1, np.mean(train_loss)))
+                    speed = (time.time() - time_now) / iter_count
+                    left_time = speed * ((args.train_epochs - epoch) * train_steps - i)
+                    accelerator.print('\tspeed: {:.4f}s/iter; left time: {:.4f}s'.format(speed, left_time))
+                    iter_count = 0  # Reset the iteration count after logging
+                    time_now = time.time()
+                    
+
+            if args.lradj == 'TST' and (i+1) % train_steps == 0:
                 adjust_learning_rate(accelerator, model_optim, scheduler, epoch + 1, args, printout=False)
                 scheduler.step()
 

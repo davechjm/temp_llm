@@ -199,7 +199,7 @@ class Model(nn.Module):
         return None
 
     def forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec):
-
+        x_enc = x_enc.to(torch.bfloat16)
         x_enc = self.normalize_layers(x_enc, 'norm')
 
         B, T, N = x_enc.size()

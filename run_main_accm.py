@@ -187,12 +187,7 @@ for ii in range(args.itr):
             model_optim.zero_grad()
 
             batch_x = batch_x.float().to(accelerator.device)
-            print('accelator device', accelerator.device)
-            # If the device is CUDA, print the CUDA version
-            if accelerator.device == 'cuda':
-                print('CUDA version:', torch.version.cuda)
-            else:
-                print('CUDA not available.')
+          
             batch_y = batch_y.float().to(accelerator.device)
             batch_x_mark = batch_x_mark.float().to(accelerator.device)
             batch_y_mark = batch_y_mark.float().to(accelerator.device)

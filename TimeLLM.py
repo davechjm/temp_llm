@@ -200,7 +200,7 @@ class Model(nn.Module):
 
     def forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec):
         x_ = x_enc.clone()
-        x_enc = x_enc.to(torch.float)
+        x_enc = x_enc.to(torch.float16)
         x_enc = self.normalize_layers(x_enc, 'norm')
 
         B, T, N = x_enc.size()
@@ -232,11 +232,11 @@ class Model(nn.Module):
             )
 
             prompt.append(prompt_)
-        x_mark_enc = x_mark_enc.to(torch.float)
-        x_dec = x_dec.to(torch.float)
-        x_mark_dec = x_mark_dec.to(torch.float)
+        x_mark_enc = x_mark_enc.to(torch.float16)
+        x_dec = x_dec.to(torch.float16)
+        x_mark_dec = x_mark_dec.to(torch.float16)
         x_enc = x_enc.reshape(B, N, T).permute(0, 2, 1).contiguous()
-        x_enc = x_enc.to(torch.float)
+        x_enc = x_enc.to(torch.float16)
 
         prompt = self.tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=2048).input_ids
         prompt_embeddings = self.llm_model.get_input_embeddings()(prompt.to(x_enc.device))  # (batch, prompt_token, dim)
@@ -244,8 +244,8 @@ class Model(nn.Module):
         source_embeddings = self.mapping_layer(self.word_embeddings.permute(1, 0)).permute(1, 0)
 
         x_enc = x_enc.permute(0, 2, 1).contiguous()
-        x_enc = x_enc.to(torch.float)
-        print(f"Data type before some_layer: {x_enc.dtype}")
+        x_enc = x_enc.to(torch.float16)
+  
         enc_out, n_vars = self.patch_embedding(x_enc)
         enc_out = self.reprogramming_layer(enc_out, source_embeddings, source_embeddings)
         llama_enc_out = torch.cat([prompt_embeddings, enc_out], dim=1)

@@ -199,7 +199,7 @@ class Model(nn.Module):
         return None
 
     def forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec):
-        x_enc = x_enc.to(torch.bfloat16)
+        #x_enc = x_enc.to(torch.bfloat16)
         x_enc = self.normalize_layers(x_enc, 'norm')
 
         B, T, N = x_enc.size()
@@ -233,6 +233,7 @@ class Model(nn.Module):
             prompt.append(prompt_)
 
         x_enc = x_enc.reshape(B, N, T).permute(0, 2, 1).contiguous()
+        x_enc = x_enc.to(torch.bfloat16)
 
         prompt = self.tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=2048).input_ids
         prompt_embeddings = self.llm_model.get_input_embeddings()(prompt.to(x_enc.device))  # (batch, prompt_token, dim)

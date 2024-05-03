@@ -199,25 +199,26 @@ class Model(nn.Module):
         return None
 
     def forecast(self, x_enc, x_mark_enc, x_dec, x_mark_dec):
-        #x_enc = x_enc.to(torch.bfloat16)
+        x_ = x_enc.clone()
+        x_enc = x_enc.to(torch.bfloat16)
         x_enc = self.normalize_layers(x_enc, 'norm')
 
         B, T, N = x_enc.size()
         x_enc = x_enc.permute(0, 2, 1).contiguous().reshape(B * N, T, 1)
 
-        min_values = torch.min(x_enc, dim=1)[0]
-        max_values = torch.max(x_enc, dim=1)[0]
-        medians = torch.median(x_enc, dim=1).values
-        lags = self.calcute_lags(x_enc)
-        trends = x_enc.diff(dim=1).sum(dim=1)
+        min_values = torch.min(x_, dim=1)[0]
+        max_values = torch.max(x_, dim=1)[0]
+        medians = torch.median(x_, dim=1).values
+        lags = self.calcute_lags(x_)
+        trends = x_.diff(dim=1).sum(dim=1)
         #feature_values_str = ", ".join([f"{val.item():.2f}" for val in x_enc[b, :, 0]])
         prompt = []
-        for b in range(x_enc.shape[0]):
+        for b in range(x_.shape[0]):
             min_values_str = str(min_values[b].tolist()[0])
             max_values_str = str(max_values[b].tolist()[0])
             median_values_str = str(medians[b].tolist()[0])
             lags_values_str = str(lags[b].tolist())
-            feature_values_str = ", ".join([f"{val.item():.2f}" for val in x_enc[b, :, 0]])
+            feature_values_str = ", ".join([f"{val.item():.2f}" for val in x_[b, :, 0]])
             prompt_ = (
                 f"<|start_prompt|>Dataset description: {self.description}"
                 f"Task description: forecast the next {str(self.pred_len)} steps given the previous {str(self.seq_len)} steps information; "

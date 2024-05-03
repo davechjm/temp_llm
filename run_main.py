@@ -128,11 +128,11 @@ for ii in range(args.itr):
     test_data, test_loader = data_provider(args, 'test')
 
     if args.model == 'Autoformer':
-        model = Autoformer.Model(args).float()
+        model = Autoformer.Model(args).to(dtype=torch.float16)
     elif args.model == 'DLinear':
-        model = DLinear.Model(args).float()
+        model = DLinear.Model(args).to(dtype=torch.float16)
     else:
-        model = TimeLLM.Model(args).float()
+        model = TimeLLM.Model(args).to(dtype=torch.float16)
 
     path = os.path.join(args.checkpoints,
                         setting + '-' + args.model_comment)  # unique checkpoint saving path
@@ -180,15 +180,15 @@ for ii in range(args.itr):
             iter_count += 1
             model_optim.zero_grad()
 
-            batch_x = batch_x.float().to(accelerator.device)
-            batch_y = batch_y.float().to(accelerator.device)
-            batch_x_mark = batch_x_mark.float().to(accelerator.device)
-            batch_y_mark = batch_y_mark.float().to(accelerator.device)
+            batch_x = batch_x.to(dtype=torch.float16).to(accelerator.device)
+            batch_y = batch_y.to(dtype=torch.float16).to(accelerator.device)
+            batch_x_mark = batch_x_mark.to(dtype=torch.float16).to(accelerator.device)
+            batch_y_mark = batch_y_mark.to(dtype=torch.float16).to(accelerator.device)
 
             # decoder input
-            dec_inp = torch.zeros_like(batch_y[:, -args.pred_len:, :]).float().to(
+            dec_inp = torch.zeros_like(batch_y[:, -args.pred_len:, :]).to(dtype=torch.float16).to(
                 accelerator.device)
-            dec_inp = torch.cat([batch_y[:, :args.label_len, :], dec_inp], dim=1).float().to(
+            dec_inp = torch.cat([batch_y[:, :args.label_len, :], dec_inp], dim=1).to(dtype=torch.float16).to(
                 accelerator.device)
 
             # encoder - decoder

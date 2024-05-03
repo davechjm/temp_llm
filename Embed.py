@@ -33,7 +33,7 @@ class TokenEmbedding(nn.Module):
         padding = 1 if torch.__version__ >= '1.5.0' else 2
         self.tokenConv = nn.Conv1d(in_channels=c_in, out_channels=d_model,
                                    kernel_size=3, padding=padding, padding_mode='circular', bias=False)
-        self.tokenConv.weight.data = self.tokenConv.weight.data.to(torch.bfloat16)  # Ensure weights are also BFloat16
+        self.tokenConv.weight.data = self.tokenConv.weight.data.to(torch.float)  # Ensure weights are also float
         for m in self.modules():
             if isinstance(m, nn.Conv1d):
                 nn.init.kaiming_normal_(
@@ -41,9 +41,9 @@ class TokenEmbedding(nn.Module):
 
     def forward(self, x):
         print(f"Data type before operation: {x.dtype}")  # Debugging statement
-        x = x.to(torch.bfloat16)
+        x = x.to(torch.float)
         print(f"Data type after conversion: {x.dtype}")  # Debugging statement
-        assert x.dtype == torch.bfloat16, "Data type mismatch detected for x_enc"
+        assert x.dtype == torch.float, "Data type mismatch detected for x_enc"
         x = self.tokenConv(x.permute(0, 2, 1)).transpose(1, 2)
         return x
 
@@ -181,7 +181,7 @@ class PatchEmbedding(nn.Module):
 
     def forward(self, x):
         # do patching
-        x = x.to(torch.bfloat16)
+        x = x.to(torch.float)
         n_vars = x.shape[1]
         x = self.padding_patch_layer(x)
         x = x.unfold(dimension=-1, size=self.patch_len, step=self.stride)

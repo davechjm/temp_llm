@@ -33,6 +33,7 @@ class TokenEmbedding(nn.Module):
         padding = 1 if torch.__version__ >= '1.5.0' else 2
         self.tokenConv = nn.Conv1d(in_channels=c_in, out_channels=d_model,
                                    kernel_size=3, padding=padding, padding_mode='circular', bias=False)
+        self.tokenConv.weight.data = self.tokenConv.weight.data.to(torch.bfloat16)  # Ensure weights are also BFloat16
         for m in self.modules():
             if isinstance(m, nn.Conv1d):
                 nn.init.kaiming_normal_(
@@ -180,6 +181,7 @@ class PatchEmbedding(nn.Module):
 
     def forward(self, x):
         # do patching
+        x = x.to(torch.bfloat16)
         n_vars = x.shape[1]
         x = self.padding_patch_layer(x)
         x = x.unfold(dimension=-1, size=self.patch_len, step=self.stride)
